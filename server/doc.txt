@@ -1,0 +1,144 @@
+================================
+ZAPPY SERVER AND CLIENT PROTOCOL
+================================
+Version 1.0
+Written by: Benoit THOMAS
+For the group of Pierre-Etienne HENRY, Ariles HARKATI, Dylan ADGHAR,
+Ewen LAYLE EVENO, and Benoit THOMAS.
+
+
+===============
+1. INTRODUCTION
+===============
+This document describes the textual communication protocol between the Zappy
+game server and its connected clients. It defines the expected commands sent by
+clients and the corresponding responses provided by the server. This document
+follows the same principles as traditional RFC documentation, being plain text,
+language agnostic, and having a strict 80-character width per line. The
+communication is fully text-based and occurs over a network socket between one
+server and multiple clients.
+
+
+=========================
+2. COMMUNICATION OVERVIEW
+=========================
+The Zappy server listens for connections from clients over TCP. Each client
+interacts with the server using a predefined set of textual commands.
+The server replies with corresponding responses.
+Clients are typically user interfaces (UIs) displaying the game world and
+reacting to server events.
+
+
+=================
+3. COMMAND FORMAT
+=================
+Each command sent by the client or the server is a plain ASCII text string
+terminated by a newline character ('\n'). Arguments are space-separated.
+Responses are also line-based and follow predefined formats. All exchanges are
+case-sensitive.
+
+
+==================
+4. SERVER PROTOCOL
+==================
+The server send the following commands to interact with the clients.
+
+Response             | Description
+---------------------+---------------------------------------------------------
+msz X Y              | Size of the map: X and Y define the map's width and
+                     | height.
+bct X Y q0 q1 ... q6 | Content of tile (X, Y) with quantities of each resource.
+tna NAME             | Name of a team.
+pnw ID X Y O L N     | New player ID at position (X, Y), orientation O, level L
+                     | and name N.
+ppo ID X Y O         | Position and orientation of player ID.
+plv ID L             | Level L of player ID.
+
+Response                | Description
+------------------------+------------------------------------------------------
+pin ID X Y q0 q1 ... q6 | Inventory of player ID at tile (X, Y).
+pex ID                  | Player ID has ejected another player.
+pbc ID MSG              | Broadcast from player ID with message MSG.
+pic X Y L ID1 ID2 ...   | Beginning of incantation at (X, Y), level L, with
+                        | players.
+pie X Y R               | Result of incantation at (X, Y): R = 0 (failure)
+                        | or 1 (success).
+pfk ID                  | Player ID has laid an egg.
+
+Response        | Description
+----------------+----------------------------------------------
+pdr ID          | Player ID has dropped an egg.
+enw EID PID X Y | Egg with ID EID laid by player PID at (X, Y).
+eht EID         | Egg EID has hatched.
+ebo EID         | Egg EID is now associated with a player.
+edi EID         | Egg EID is destroyed.
+sgt T           | Current time unit per action is T.
+
+Response | Description
+---------+-----------------------------------------------
+sst T    | Time unit per action changed to T.
+seg TEAM | Game over. Winning team is TEAM.
+smg MSG  | Server message MSG.
+suc      | Command sent by GUI client is unknown.
+sbp      | Command sent by GUI client has bad parameters.
+
+
+========
+5. GUI PROTOCOL
+========
+The graphical user interface (GUI) can send the following commands
+to the server to interact with the game or request information.
+All commands are ASCII strings terminated by \n.
+Numeric values ​​are expressed in base 10.
+
+Command | Description
+---------+-----------------------------------------------
+msz      | Ask for map size (response: `msz X Y`).
+bct X Y  | Request the contents of the box at (X, Y) 
+         | (response: `bct X Y q0 q1 q2 q3 q4 q5 q6`).
+         |
+mct      | Request full card contents (response: list of `bct`).
+tna      | Ask for the names of all teams (answer: list of `tna N`).
+ppo #n   | Asks for the position of a player (response: `ppo #n X Y O`).
+plv #n   | Asks for the level of player ID `n` (response: `plv #n L`)
+pin #n   | Requests inventory of player with ID `n` 
+         | (response: `pin #n X Y q0 q1 q2 q3 q4 q5 q6`).
+sgt      | Asks for the current time unit (response: `sgt T`).
+sst T    | Changes the time unit to the value `T` (answer: `sst T`).
+
+
+========
+6. AI PROTOCOL
+========
+The AI client sends commands to control a player within the Zappy
+world. All commands are ASCII strings terminated by \n. The server
+responds with confirmation messages, status updates, or error messages.
+
+Command      | Description
+-------------+-----------------------------------------------------------
+Forward      | Moves the player forward by one tile (response: `ok`).
+Right        | Turns the player 90 degrees to the right (response: `ok`).
+Left         | Turns the player 90 degrees to the left (response: `ok`).
+Look         | Requests the surroundings (response: list of visible tiles).
+Inventory    | Requests the player's inventory (response: resource list).
+Broadcast M  | Sends message `M` to all players (response: `ok`).
+Connect_nbr  | Asks for available connection slots for the team 
+             | (response: integer in ascii).
+Fork         | Creates an egg, allowing a new player to connect 
+             | (response: `ok`).
+Eject        | Pushes other players off the same tile (response: `ok` or `ko`).
+Take i       | Picks up resource `i` from the tile (response: `ok` or `ko`).
+Set i        | Drops resource `i` on the tile (response: `ok` or `ko`).
+Incantation  | Starts an incantation to level up 
+             | (response: `Elevation underway` or `ko`).
+
+========
+7. NOTES
+========
+- All client commands must end with '\n'.
+- The server may send responses asynchronously
+  (not directly linked to a client command).
+- Clients must handle unexpected or out-of-order messages.
+- All numeric values are expressed as base-10 text strings.
+- Communication is strictly ASCII (no binary data).
+
